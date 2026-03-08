@@ -26,8 +26,9 @@ app.add_middleware(
 # ─────────────────────────────────────────────────────────────────────────────
 # Data & model loading
 # ─────────────────────────────────────────────────────────────────────────────
-DATA_PATH = "data/students.csv"
-MODELS_DIR = "models"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "data", "students.csv")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 
 _df: Optional[pd.DataFrame] = None
 _regressor = None
@@ -38,25 +39,38 @@ _feature_cols: Optional[List[str]] = None
 
 def _load_data():
     global _df
-    if os.path.exists(DATA_PATH):
-        _df = pd.read_csv(DATA_PATH)
-    else:
+    try:
+        if os.path.exists(DATA_PATH):
+            _df = pd.read_csv(DATA_PATH)
+            print(f"Loaded student data: {_df.shape}")
+        else:
+            print(f"students.csv not found at: {DATA_PATH}")
+            _df = pd.DataFrame()
+    except Exception as e:
+        print(f"Data load failed: {e}")
         _df = pd.DataFrame()
 
 
 def _load_models():
     global _regressor, _classifier, _label_encoders, _feature_cols
     try:
-        with open(f"{MODELS_DIR}/regressor.pkl", "rb") as f:
+        with open(os.path.join(MODELS_DIR, "regressor.pkl"), "rb") as f:
             _regressor = pickle.load(f)
-        with open(f"{MODELS_DIR}/classifier.pkl", "rb") as f:
+        with open(os.path.join(MODELS_DIR, "classifier.pkl"), "rb") as f:
             _classifier = pickle.load(f)
-        with open(f"{MODELS_DIR}/label_encoders.pkl", "rb") as f:
+        with open(os.path.join(MODELS_DIR, "label_encoders.pkl"), "rb") as f:
             _label_encoders = pickle.load(f)
-        with open(f"{MODELS_DIR}/feature_cols.pkl", "rb") as f:
+        with open(os.path.join(MODELS_DIR, "feature_cols.pkl"), "rb") as f:
             _feature_cols = pickle.load(f)
-    except FileNotFoundError:
-        pass  # Models not trained yet – handled in /predict
+
+        print("All models loaded successfully.")
+
+    except Exception as e:
+        print(f"Model load failed: {e}")
+        _regressor = None
+        _classifier = None
+        _label_encoders = None
+        _feature_cols = None
 
 
 @app.on_event("startup")
